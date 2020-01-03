@@ -1,4 +1,4 @@
-package com.e.note_rx;
+package com.e.note_rx.view;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -10,10 +10,24 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.e.note_rx.NoteAdapter;
+import com.e.note_rx.R;
+import com.e.note_rx.model.Note;
+import com.e.note_rx.network.RetrofitClient;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.gson.JsonObject;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
+import okhttp3.ResponseBody;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -85,5 +99,39 @@ public class MainActivity extends AppCompatActivity {
 
     private void addNote(String title, String description) {
         noteAdapter.addNote(new Note(title, description));
+        Call<ResponseBody> call = RetrofitClient.getInstance()
+                .getApi()
+                .createNote(title, description);
+
+        call.enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+
+                if (response.code() == 201) {
+                    String res = null;
+                    try {
+                        res = response.body().string();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    try {
+                        JSONObject jsonObject = new JSONObject(res);
+                        boolean error = jsonObject.getBoolean("error");
+                        String message = jsonObject.getString("message");
+                        Log.d(TAG, "onResponse: " + jsonObject.getJSONObject("data"));
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                } else {
+
+                }
+
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                Log.d(TAG, "onFailure: " + t.getMessage());
+            }
+        });
     }
 }

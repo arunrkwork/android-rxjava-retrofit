@@ -1,4 +1,4 @@
-package com.e.note_rx;
+package com.e.note_rx.view;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -9,6 +9,8 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
+
+import com.e.note_rx.R;
 
 public class AddNoteActivity extends AppCompatActivity {
 

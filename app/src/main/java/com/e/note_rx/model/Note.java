@@ -1,9 +1,17 @@
-package com.e.note_rx;
+package com.e.note_rx.model;
+
+import com.google.gson.annotations.SerializedName;
 
 public class Note {
 
+    @SerializedName("id")
     private int id;
-    private String title, description;
+
+    @SerializedName("title")
+    private String title;
+
+    @SerializedName("desc")
+    private String description;
 
     public Note(int id, String title, String description) {
         this.id = id;
