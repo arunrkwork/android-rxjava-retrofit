@@ -10,7 +10,7 @@ public class Note {
     @SerializedName("title")
     private String title;
 
-    @SerializedName("desc")
+    @SerializedName("description")
     private String description;
 
     public Note(int id, String title, String description) {

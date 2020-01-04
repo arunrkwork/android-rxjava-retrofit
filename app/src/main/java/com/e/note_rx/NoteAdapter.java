@@ -44,6 +44,7 @@ public class NoteAdapter extends RecyclerView.Adapter<NoteAdapter.NoteViewHolder
         return list != null ? list.size() : 0;
     }
 
+
     public class NoteViewHolder extends RecyclerView.ViewHolder{
 
         TextView txtTitle, txtDescription;
@@ -54,11 +55,5 @@ public class NoteAdapter extends RecyclerView.Adapter<NoteAdapter.NoteViewHolder
             txtTitle = itemView.findViewById(R.id.txtTitle);
             txtDescription = itemView.findViewById(R.id.txtDescription);
         }
-    }
-
-    public void addNote(Note note) {
-        Log.d(TAG, "addNote: " + note.getDescription());
-        list.add(note);
-        notifyDataSetChanged();
     }
 }

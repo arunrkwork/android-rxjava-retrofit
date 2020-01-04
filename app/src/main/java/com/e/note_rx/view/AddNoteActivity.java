@@ -16,7 +16,7 @@ public class AddNoteActivity extends AppCompatActivity {
 
     EditText edTitle, edDescription;
     Button btnAdd;
-    int noteId = 0;
+    int noteId = 0, index = 0;
     String title, description;
 
     @Override
@@ -25,13 +25,21 @@ public class AddNoteActivity extends AppCompatActivity {
         setContentView(R.layout.activity_add_note);
 
         Bundle bundle = getIntent().getExtras();
-        noteId = bundle.getInt("id");
-        title = bundle.getString("title");
-        description = bundle.getString("description");
+        if(bundle != null) {
+            index = bundle.getInt("index");
+            noteId = bundle.getInt("id");
+            title = bundle.getString("title");
+            description = bundle.getString("description");
+        }
 
         edTitle = findViewById(R.id.edTitle);
         edDescription = findViewById(R.id.edDescription);
         btnAdd = findViewById(R.id.btnAdd);
+
+        if (noteId != 0 ) {
+            edTitle.setText(title);
+            edDescription.setText(description);
+        }
 
         btnAdd.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -52,7 +60,8 @@ public class AddNoteActivity extends AppCompatActivity {
         }
 
         Intent intent = new Intent();
-        intent.putExtra("noteId", noteId);
+        intent.putExtra("index", index);
+        intent.putExtra("id", noteId);
         intent.putExtra("title", title);
         intent.putExtra("description", description);
         setResult(RESULT_OK, intent);
