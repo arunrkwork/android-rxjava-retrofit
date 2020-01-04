@@ -27,6 +27,7 @@ import java.util.Comparator;
 import java.util.List;
 
 import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.functions.Function;
 import io.reactivex.observers.DisposableCompletableObserver;
 import io.reactivex.observers.DisposableSingleObserver;
@@ -46,6 +47,8 @@ public class MainActivity extends AppCompatActivity {
     RecyclerView recyclerView;
     NoteAdapter noteAdapter;
     List<Note> list;
+
+    private CompositeDisposable disposable = new CompositeDisposable();
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -162,55 +165,59 @@ public class MainActivity extends AppCompatActivity {
                 updateNote(index, id, title, description);
             }
         }
+
     }
 
     private void deleteNote(int index, int noteId) {
 
-        RetrofitClient.getInstance()
-                .getApi()
-                .deleteNote(noteId)
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribeWith(new DisposableCompletableObserver() {
-                    @Override
-                    public void onComplete() {
-                        removeNotePosition(index);
-                        Log.d(TAG, "deleteNote onComplete: ");
-                    }
+        disposable.add(
+                RetrofitClient.getInstance()
+                        .getApi()
+                        .deleteNote(noteId)
+                        .subscribeOn(Schedulers.io())
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribeWith(new DisposableCompletableObserver() {
+                            @Override
+                            public void onComplete() {
+                                removeNotePosition(index);
+                                Log.d(TAG, "deleteNote onComplete: ");
+                            }
 
-                    @Override
-                    public void onError(Throwable e) {
-                        Log.e(TAG, "deleteNote onError: ", e);
-                    }
-                });
+                            @Override
+                            public void onError(Throwable e) {
+                                Log.e(TAG, "deleteNote onError: ", e);
+                            }
+                        })
+        );
 
     }
 
     private void updateNote(int index, int noteId, String title, String description) {
-        RetrofitClient.getInstance()
-                .getApi()
-                .updateNote(noteId, title, description)
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribeWith(new DisposableCompletableObserver() {
-                    @Override
-                    public void onComplete() {
-                        Note note = new Note(noteId, title, description);
-                        updateNotePosition(index, note);
-                        Log.d(TAG, "updateNote onComplete: ");
-                    }
+        disposable.add(
+                RetrofitClient.getInstance()
+                        .getApi()
+                        .updateNote(noteId, title, description)
+                        .subscribeOn(Schedulers.io())
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribeWith(new DisposableCompletableObserver() {
+                            @Override
+                            public void onComplete() {
+                                Note note = new Note(noteId, title, description);
+                                updateNotePosition(index, note);
+                                Log.d(TAG, "updateNote onComplete: ");
+                            }
 
-                    @Override
-                    public void onError(Throwable e) {
-                        Log.e(TAG, "updateNote onError: ", e);
-                    }
-                });
-
+                            @Override
+                            public void onError(Throwable e) {
+                                Log.e(TAG, "updateNote onError: ", e);
+                            }
+                        })
+        );
     }
 
     private void addNote(String title, String description) {
 
-        RetrofitClient.getInstance()
+        disposable.add(RetrofitClient.getInstance()
                 .getApi()
                 .createNote(title, description)
                 .subscribeOn(Schedulers.io())
@@ -226,42 +233,45 @@ public class MainActivity extends AppCompatActivity {
                     public void onError(Throwable e) {
                         Log.e(TAG, "addNote onError: ", e);
                     }
-                });
+                })
+        );
 
     }
 
     public void readNotes() {
 
-        RetrofitClient.getInstance()
-                .getApi()
-                .getNotes()
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .map(new Function<NoteResponse, NoteResponse>() {
-                    @Override
-                    public NoteResponse apply(NoteResponse response) throws Exception {
-                        Collections.sort(response.getData().getList(), new Comparator<Note>() {
+        disposable.add(
+                RetrofitClient.getInstance()
+                        .getApi()
+                        .getNotes()
+                        .subscribeOn(Schedulers.io())
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .map(new Function<NoteResponse, NoteResponse>() {
                             @Override
-                            public int compare(Note n1, Note n2) {
-                                return n2.getId() - n1.getId();
+                            public NoteResponse apply(NoteResponse response) throws Exception {
+                                Collections.sort(response.getData().getList(), new Comparator<Note>() {
+                                    @Override
+                                    public int compare(Note n1, Note n2) {
+                                        return n2.getId() - n1.getId();
+                                    }
+                                });
+                                return response;
                             }
-                        });
-                        return response;
-                    }
-                })
-                .subscribeWith(new DisposableSingleObserver<NoteResponse>() {
-                    @Override
-                    public void onSuccess(NoteResponse response) {
-                        List<Note> list = response.getData().getList();
-                        addNotesPosition(list);
-                        Log.d(TAG, "onSuccess: ");
-                    }
+                        })
+                        .subscribeWith(new DisposableSingleObserver<NoteResponse>() {
+                            @Override
+                            public void onSuccess(NoteResponse response) {
+                                List<Note> list = response.getData().getList();
+                                addNotesPosition(list);
+                                Log.d(TAG, "onSuccess: ");
+                            }
 
-                    @Override
-                    public void onError(Throwable e) {
-                        Log.e(TAG, "readNotes onError: ", e);
-                    }
-                });
+                            @Override
+                            public void onError(Throwable e) {
+                                Log.e(TAG, "readNotes onError: ", e);
+                            }
+                        })
+        );
 
     }
 
@@ -286,5 +296,11 @@ public class MainActivity extends AppCompatActivity {
         this.list.addAll(list);
         noteAdapter.notifyDataSetChanged();
         Log.d(TAG, "addNotesPosition: size " + this.list.size());
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        disposable.dispose();
     }
 }
