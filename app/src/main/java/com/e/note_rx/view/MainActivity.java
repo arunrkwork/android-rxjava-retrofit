@@ -21,7 +21,16 @@ import com.e.note_rx.network.response.NoteResponse;
 import com.e.note_rx.network.RetrofitClient;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.functions.Function;
+import io.reactivex.observers.DisposableCompletableObserver;
+import io.reactivex.observers.DisposableSingleObserver;
+import io.reactivex.schedulers.Schedulers;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -156,129 +165,104 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void deleteNote(int index, int noteId) {
-        Call<CommonNoteResponse> call = RetrofitClient.getInstance()
+
+        RetrofitClient.getInstance()
                 .getApi()
-                .deleteNote(noteId);
+                .deleteNote(noteId)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeWith(new DisposableCompletableObserver() {
+                    @Override
+                    public void onComplete() {
+                        removeNotePosition(index);
+                        Log.d(TAG, "deleteNote onComplete: ");
+                    }
 
-        call.enqueue(new Callback<CommonNoteResponse>() {
-            @Override
-            public void onResponse(Call<CommonNoteResponse> call, Response<CommonNoteResponse> response) {
-                if (response.code() == 201) {
-                    Log.d(TAG, "onResponse: " + response.body().getData().getNoteId());
-                    removeNotePosition(index);
-                } else {
-                    // Log.d(TAG, "onResponse: " + response.body().getData().getNoteId());
-                }
-            }
+                    @Override
+                    public void onError(Throwable e) {
+                        Log.e(TAG, "deleteNote onError: ", e);
+                    }
+                });
 
-            @Override
-            public void onFailure(Call<CommonNoteResponse> call, Throwable t) {
-                Log.d(TAG, "onFailure: " + t.getMessage());
-            }
-        });
     }
 
     private void updateNote(int index, int noteId, String title, String description) {
-        Call<CommonNoteResponse> call = RetrofitClient.getInstance()
+        RetrofitClient.getInstance()
                 .getApi()
-                .updateNote(noteId, title, description);
+                .updateNote(noteId, title, description)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeWith(new DisposableCompletableObserver() {
+                    @Override
+                    public void onComplete() {
+                        Note note = new Note(noteId, title, description);
+                        updateNotePosition(index, note);
+                        Log.d(TAG, "updateNote onComplete: ");
+                    }
 
-        call.enqueue(new Callback<CommonNoteResponse>() {
-            @Override
-            public void onResponse(Call<CommonNoteResponse> call, Response<CommonNoteResponse> response) {
-                if (response.code() == 201) {
-                    Log.d(TAG, "onResponse: " + response.body().getData().getNoteId());
-                    Note note = new Note(noteId, title, description);
+                    @Override
+                    public void onError(Throwable e) {
+                        Log.e(TAG, "updateNote onError: ", e);
+                    }
+                });
 
-                    updateNotePosition(index, note);
-                } else {
-
-                }
-            }
-
-            @Override
-            public void onFailure(Call<CommonNoteResponse> call, Throwable t) {
-
-            }
-        });
     }
 
     private void addNote(String title, String description) {
 
-        Call<CommonNoteResponse> call = RetrofitClient.getInstance()
+        RetrofitClient.getInstance()
                 .getApi()
-                .createNote(title, description);
+                .createNote(title, description)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeWith(new DisposableSingleObserver<CommonNoteResponse>() {
+                    @Override
+                    public void onSuccess(CommonNoteResponse response) {
+                        int id = response.getData().getNoteId();
+                        addNotePosition(new Note(id, title, description));
+                    }
 
-        call.enqueue(new Callback<CommonNoteResponse>() {
-            @Override
-            public void onResponse(Call<CommonNoteResponse> call, Response<CommonNoteResponse> response) {
-                if (response.code() == 201) {
-                    Log.d(TAG, "onResponse: " + response.body().getData().getNoteId());
-                    int id = response.body().getData().getNoteId();
-                    addNotePosition(new Note(id, title, description));
-                } else {
+                    @Override
+                    public void onError(Throwable e) {
+                        Log.e(TAG, "addNote onError: ", e);
+                    }
+                });
 
-                }
-            }
-
-            @Override
-            public void onFailure(Call<CommonNoteResponse> call, Throwable t) {
-
-            }
-        });
-
-//        Call<ResponseBody> call = RetrofitClient.getInstance()
-//                .getApi()
-//                .createNote(title, description);
-//
-//        call.enqueue(new Callback<ResponseBody>() {
-//            @Override
-//            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
-//
-//                if (response.code() == 201) {
-//                    String res = null;
-//                    try {
-//                        res = response.body().string();
-//                    } catch (IOException e) {
-//                        e.printStackTrace();
-//                    }
-//                    try {
-//                        JSONObject jsonObject = new JSONObject(res);
-//                        boolean error = jsonObject.getBoolean("error");
-//                        String message = jsonObject.getString("message");
-//                        Log.d(TAG, "onResponse: " + jsonObject.getJSONObject("data"));
-//                    } catch (JSONException e) {
-//                        e.printStackTrace();
-//                    }
-//                } else {
-//
-//                }
-//
-//            }
-//
-//            @Override
-//            public void onFailure(Call<ResponseBody> call, Throwable t) {
-//                Log.d(TAG, "onFailure: " + t.getMessage());
-//            }
-//        });
     }
 
     public void readNotes() {
-        Call<NoteResponse> readCall = RetrofitClient.getInstance()
-                .getApi()
-                .getNotes();
-        readCall.enqueue(new Callback<NoteResponse>() {
-            @Override
-            public void onResponse(Call<NoteResponse> call, Response<NoteResponse> response) {
-                List<Note> list = response.body().getData().getList();
-                addNotesPosition(list);
-            }
 
-            @Override
-            public void onFailure(Call<NoteResponse> call, Throwable t) {
-                Log.d(TAG, "onFailure: " + t.getMessage());
-            }
-        });
+        RetrofitClient.getInstance()
+                .getApi()
+                .getNotes()
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .map(new Function<NoteResponse, NoteResponse>() {
+                    @Override
+                    public NoteResponse apply(NoteResponse response) throws Exception {
+                        Collections.sort(response.getData().getList(), new Comparator<Note>() {
+                            @Override
+                            public int compare(Note n1, Note n2) {
+                                return n2.getId() - n1.getId();
+                            }
+                        });
+                        return response;
+                    }
+                })
+                .subscribeWith(new DisposableSingleObserver<NoteResponse>() {
+                    @Override
+                    public void onSuccess(NoteResponse response) {
+                        List<Note> list = response.getData().getList();
+                        addNotesPosition(list);
+                        Log.d(TAG, "onSuccess: ");
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        Log.e(TAG, "readNotes onError: ", e);
+                    }
+                });
+
     }
 
     public void addNotePosition(Note note) {
